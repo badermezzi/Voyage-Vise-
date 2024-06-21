@@ -11,15 +11,26 @@ export default function App() {
   }
 
   function checkItemEvent(id) {
-    setItems((items) => (items.map((item) => (item.id === id ? { ...item, packed: !item.packed } : {}))))
+    setItems((items) => (items.map((item) => (id === item.id ? { ...item, packed: !item.packed } : item))));
+  }
+
+  function clearListBtnEvent() {
+
+    let confermed;
+
+    if (items.length > 0) { confermed = window.confirm("Are you sure you want to delete all items ?") };
+
+
+    if (confermed) setItems([]);
+
   }
 
   return <div className="app">
 
     <Logo />
     <Form itemsObj={{ items, setItems }} />
-    <PackingList itemsObj={{ items, setItems }} deleteItemEvent={deleteItemEvent} checkItemEvent={checkItemEvent} />
-    <Stats />
+    <PackingList itemsObj={{ items, setItems }} deleteItemEvent={deleteItemEvent} checkItemEvent={checkItemEvent} clearListBtnEvent={clearListBtnEvent} />
+    <Stats items={items} />
 
   </div>
 
@@ -27,7 +38,7 @@ export default function App() {
 
 function Logo() {
   return <div >
-    <h1><img src={desertIsland} alt="desertIsland" /> Far Away <img src={bag} alt="bag" /></h1>
+    <h1><img src={desertIsland} alt="desertIsland" /> Voyage Vise <img src={bag} alt="bag" /></h1>
   </div>
 }
 
@@ -53,7 +64,7 @@ function Form({ itemsObj }) {
 
   return <form className="add-form" onSubmit={formEvent} >
     <h3> What do you need for your trip?</h3>
-    <select name="select" value={quantity} onChange={(e) => { setQuantity(Number(e.target.value)) }}>
+    <select value={quantity} onChange={(e) => { setQuantity(Number(e.target.value)) }}>
       {Array.from({ length: 20 }, (_, index) => (index + 1))
         .map((num, i) => (<option value={num} key={i}>{num}</option>))}
     </select>
@@ -62,14 +73,35 @@ function Form({ itemsObj }) {
   </form >
 }
 
-function PackingList({ itemsObj, deleteItemEvent, checkItemEvent }) {
-  itemsObj = itemsObj;
+function PackingList({ itemsObj, deleteItemEvent, checkItemEvent, clearListBtnEvent }) {
+
+  const [sortBy, setSortBy] = useState("input");
+
+  let sortedItems;
+
+  if (sortBy === "input") sortedItems = itemsObj.items;
+
+  if (sortBy === "description") sortedItems = itemsObj.items.slice().sort((a, b) => a.description.localeCompare(b.description));
+
+  if (sortBy === "packed") sortedItems = itemsObj.items.slice().sort((a, b) => Number(a.packed) - Number(b.packed));
+
   return (<div className="list ">
     <ul>
 
-      {itemsObj.items.map((item) => (<Item itemObj={item} deleteItemEvent={deleteItemEvent} checkItemEvent={checkItemEvent} key={item.id} />))}
+      {sortedItems.map((item) => (<Item itemObj={item} deleteItemEvent={deleteItemEvent} checkItemEvent={checkItemEvent} key={item.id} />))}
 
     </ul>
+
+    <div className="actions">
+
+      <select value={sortBy} onChange={(e) => setSortBy(e.target.value)}>
+        <option value="input">sort by input order</option>
+        <option value="description">sort by description</option>
+        <option value="packed">sort by packed status</option>
+      </select>
+      <button onClick={() => (clearListBtnEvent())} >clear list</button>
+    </div>
+
   </div >
   );
 }
@@ -86,8 +118,19 @@ function Item({ itemObj, deleteItemEvent, checkItemEvent }) {
 
 
 
-function Stats() {
-  return <div className="stats">
-    <em>you have X items on your list and you already packed X (X%)</em>
-  </div>
+function Stats({ items }) {
+  if (items.length === 0) {
+    return <p className="stats">
+      Start adding some items to your packing list
+    </p>
+  };
+
+  const itemsLength = items.length;
+  const packadItemsLength = items.filter((item) => (item.packed === true)).length;
+  const packadItemsPersentage = Math.trunc((packadItemsLength / itemsLength) * 100);
+
+  return <footer className="stats">
+    {packadItemsPersentage === 100 ? <em>You're all packed and ready to go! Have a great trip! 🌟</em> : <em>you have {itemsLength} items on your list and you already packed {packadItemsLength} ( {packadItemsPersentage >= 0 ? packadItemsPersentage : 0} %)</em>}
+
+  </footer>
 }
